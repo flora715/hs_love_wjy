@@ -1,0 +1,99 @@
+```cpp
+#include<iostream>
+#include<cstdio>
+#include<cstring>
+#include<algorithm>
+#include<string>
+#include<queue>
+#include<vector>
+#include<cmath>
+#include<map>
+using namespace std;
+typedef long long ll;
+
+/*【p3225】矿场搭建 */
+
+//【标签】数学统计 + 分情况讨论 + 割点 + 无向图双连通分量
+
+/* 割点：在一个【无向图】中，如果有一个顶点集合，
+        删除这个顶点集合以及这个集合中所有顶点相关联的边以后，
+        图的连通分量增多，就称这个点集为割点【集合】。  */
+
+// 双连通分量：无向图中的强连通分量，去掉任意一个节点都不会改变连通性
+
+/*【tarjan算法求割点】
+1.判断根节点：计算其子树数量，如果有2棵即以上的子树，就是割点。
+2.回顾一下low[i]的定义：u及其子树中的点，能够连向到的dfn最小的点的dfn值。
+2.对于边(u,v)，如果low[v]>=dfn[u]，那么low[v]没有返祖边，此时u就是割点。*/
+
+/*【思路】统计每个双连通分量里的割点的个数，并分情况讨论。
+1.若该连通分量里割点>=2，可以通过其他割点跑到其他的双连通分量里。
+2.若该连通分量里割点=1，所以要在任意一个非割点处建一个出口。
+3.若该连通分量里割点=0，说明它与外界完全不连通，需要建两个出口以防万一。*/
+
+void reads(int &x){ //读入优化（正负整数）
+    int fa=1;x=0;char s=getchar();
+    while(s<'0'||s>'9'){if(s=='-')fa=-1;s=getchar();}
+    while(s>='0'&&s<='9'){x=(x<<3)+(x<<1)+s-'0';s=getchar();}
+    x*=fa; //正负号
+}
+
+const int N=519;
+
+int n,m,tot=0,head[N],dfn[N],low[N],cut[N],vis[N],root;
+
+int dfn_=0,sum,cnt,cut_num; //连通块数sum，当前连通块节点数、割点数
+
+int kase=0; ll ans1,ans2; //选点数，方案数
+
+struct node{ int ver,nextt; }e[N*2];
+
+void add(int u,int v){ e[++tot].ver=v,e[tot].nextt=head[u],head[u]=tot; }
+
+void tarjan(int u,int fa){ //【tarjan求割点】
+    
+    dfn[u]=low[u]=++dfn_; int child=0;
+    //fa是子树的根节点，如果儿子数>=2则是割点
+   
+    for(int i=head[u];i;i=e[i].nextt){
+      if(!dfn[e[i].ver]){ 
+        tarjan(e[i].ver,u),low[u]=min(low[u],low[e[i].ver]);
+        if(low[e[i].ver]>=dfn[u]&&u!=root) cut[u]=true;
+        if(u==root) child++; //root节点的儿子数++
+      } low[u]=min(low[u],dfn[e[i].ver]);
+    } if(child>=2&&u==root) cut[u]=true;
+}
+
+void dfs(int u){ //遍历每个连通块
+	vis[u]=sum; cnt++; //节点数cnt++
+	for(int i=head[u];i;i=e[i].nextt){
+		if(cut[e[i].ver]&&vis[e[i].ver]!=sum) 
+			cut_num++,vis[e[i].ver]=sum; //e[i].ver是割点
+		if(!vis[e[i].ver]) dfs(e[i].ver); //非割点
+	}
+}
+
+void init(){
+	memset(head,0,sizeof(head));
+	memset(dfn,0,sizeof(dfn));
+	memset(low,0,sizeof(low));
+	memset(cut,0,sizeof(cut));
+	memset(vis,0,sizeof(vis));
+	dfn_=n=tot=sum=ans1=0,ans2=1;
+}
+
+int main(/*hs_love_wjy*/){
+    while(scanf("%d",&m)==1&&m){
+    	init(); //日常清零
+    	for(int i=1,u,v;i<=m;i++){
+    		reads(u),reads(v),n=max(n,max(u,v));
+    		add(u,v),add(v,u); //↑↑记录点的总个数n
+    	} for(int i=1;i<=n;i++) if(!dfn[i]) root=i,tarjan(i,0);
+    	for(int i=1;i<=n;i++) if(!vis[i]&&!cut[i]){
+    		sum++; cnt=cut_num=0; dfs(i); //到达一个新的连通块
+    		if(!cut_num) ans1+=2,ans2*=cnt*(cnt-1)/2; //建两个
+    		if(cut_num==1) ans1++,ans2*=cnt; //建一个
+    	} printf("Case %d: %lld %lld\n",++kase,ans1,ans2);
+    }
+}
+```cpp
